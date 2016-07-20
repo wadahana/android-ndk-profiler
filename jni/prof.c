@@ -86,7 +86,7 @@ static histogram_t hist;
 static process_t process;
 static callgraph_t cg;
 static struct proc_map *s_maps = NULL;
-int opt_is_shared_lib = 0;
+
 
 static void systemMessage(int a, const char *msg)
 {
@@ -294,14 +294,6 @@ void monstartup(const char *libname)
 	if (!self) {
 		systemMessage(1, "Cannot open memory maps file");
 		return;
-	}
-
-	if (strstr(libname, ".so")) {
-		LOGI("start profiling shared library %s", libname);
-		opt_is_shared_lib = 1;
-	} else {
-		LOGI("start profiling executable %s", libname);
-		opt_is_shared_lib = 0;
 	}
 
 	s_maps = read_maps(self, libname);

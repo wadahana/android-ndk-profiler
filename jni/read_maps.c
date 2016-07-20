@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <elf.h>
 #include "read_maps.h"
 
 #ifdef ANDROID
@@ -19,8 +20,31 @@
 #define LOGI(...)  do { printf(__VA_ARGS__) ; printf("\n"); } while (0)
 #endif
 
+#if defined(__LP64__)
+#define ElfW(type) Elf64_ ## type
+#else
+#define ElfW(type) Elf32_ ## type
+#endif
+
 static char s_line[256];
-extern int opt_is_shared_lib;
+int opt_is_shared_lib = 0;
+
+int is_shared_library(const struct proc_map *maps)
+{
+	const struct proc_map *mp = maps;
+	ElfW(Addr) lo = (ElfW(Addr))-1;
+	while (mp) {
+		if ((ElfW(Addr))mp->lo <= lo) {
+			lo = (ElfW(Addr))mp->lo;
+		}
+		mp = mp->next;
+	}
+	if (lo != (ElfW(Addr))-1) {
+		ElfW(Ehdr)* ehdr = (ElfW(Ehdr)*)lo;
+		return ehdr->e_type == 0x03;
+	}
+	return 0;
+}
 
 void free_maps(struct proc_map *s)
 {
@@ -76,6 +100,8 @@ struct proc_map *read_maps(FILE *fp, const char *lname)
 			current->hi = hi;
 		}
 	}
+	opt_is_shared_lib = is_shared_library(results);
+	fprintf(stderr, "opt_is_shared_lib (%d)\n", opt_is_shared_lib);
 	return results;
 }
 
